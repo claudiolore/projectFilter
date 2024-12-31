@@ -8,14 +8,17 @@ class Program
         try
         {
             Console.WriteLine("Inserisci il percorso della cartella del progetto C#: ");
-            string sourcePath = Console.ReadLine().Trim();
+            //string sourcePath = Console.ReadLine().Trim();
+            //string sourcePath = "C:/Users/claud/source/repos/pizzeriaWebApp/pizzeriaWebApp";
+            string sourcePath = "C:/Users/claud/OneDrive/Desktop/corso-react";
+
 
             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             string destinationPath = Path.Combine(desktopPath, "Progetto_Filtrato");
 
             Directory.CreateDirectory(destinationPath);
 
-            string[] foldersToCopy = { "Controllers", "Data", "DTOs", "Models", "Profiles", "Services" };
+            string[] foldersToCopy = { "Controllers", "Data", "DTOs", "Models", "Profiles", "Services", "src" };
 
             foreach (string folderName in foldersToCopy)
             {
