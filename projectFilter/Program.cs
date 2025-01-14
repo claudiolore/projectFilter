@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Collections.Generic;
 
 class Program
@@ -9,18 +8,18 @@ class Program
     {
         try
         {
-            Console.WriteLine("Quale progetto vuoi filtrare? (1)-react  (2)-.net  (3)-entrambi");
-            string risposta = Console.ReadLine().Trim();
+            Console.WriteLine("Which project do you want to filter? (1)-react  (2)-.net  (3)-both");
+            string response = Console.ReadLine().Trim();
 
-            string reactPath = "C:/Users/claud/OneDrive/Desktop/pizzeriaWebApp-React";
-            string dotnetPath = "C:/Users/claud/source/repos/pizzeriaWebApp/pizzeriaWebApp";
+            string reactPath = @"C:\Users\claud\OneDrive\Desktop\pizzeriaWebApp-React";
+            string dotnetPath = @"C:\Users\claud\source\repos\pizzeriaWebApp\pizzeriaWebApp";
             List<string> sourcePaths = new List<string>();
 
             string[] reactFolders = { "src" };
             string[] dotnetFolders = { "Controllers", "Data", "DTOs", "Models", "Profiles", "Services" };
             string[] dotnetFiles = { "Program.cs", "appsettings.json", "appsettings.Development.json", "appsettings.Production.json", "Dockerfile" };
 
-            switch (risposta)
+            switch (response)
             {
                 case "1":
                     sourcePaths.Add(reactPath);
@@ -33,7 +32,7 @@ class Program
                     sourcePaths.Add(dotnetPath);
                     break;
                 default:
-                    Console.WriteLine("Scelta non valida. Uscita dal programma.");
+                    Console.WriteLine("Invalid choice. Exiting the program.");
                     return;
             }
 
@@ -42,76 +41,80 @@ class Program
 
             Directory.CreateDirectory(destinationPath);
 
-            using (StreamWriter logWriter = new StreamWriter(Path.Combine(destinationPath, "StrutturaProgetto.txt")))
+            string mergedFilePath = Path.Combine(destinationPath, "AllCode.txt");
+            using (StreamWriter mergedWriter = new StreamWriter(mergedFilePath))
             {
-                logWriter.WriteLine("Struttura del progetto copiata:");
-                logWriter.WriteLine();
-
-                foreach (string sourcePath in sourcePaths)
+                using (StreamWriter logWriter = new StreamWriter(Path.Combine(destinationPath, "ProjectStructure.txt")))
                 {
-                    string[] foldersToCopy;
-                    string[] filesToCopy;
+                    logWriter.WriteLine("Project structure copied:");
+                    logWriter.WriteLine();
 
-                    if (sourcePath == reactPath)
+                    foreach (string sourcePath in sourcePaths)
                     {
-                        foldersToCopy = reactFolders;
-                        filesToCopy = new string[] { };
-                    }
-                    else if (sourcePath == dotnetPath)
-                    {
-                        foldersToCopy = dotnetFolders;
-                        filesToCopy = dotnetFiles;
-                    }
-                    else
-                    {
-                        foldersToCopy = new string[] { };
-                        filesToCopy = new string[] { };
-                    }
+                        string[] foldersToCopy;
+                        string[] filesToCopy;
 
-                    // Copy folders
-                    foreach (string folderName in foldersToCopy)
-                    {
-                        string folderPath = Path.Combine(sourcePath, folderName);
-                        if (Directory.Exists(folderPath))
+                        if (sourcePath == reactPath)
                         {
-                            logWriter.WriteLine($"Cartella: {folderName} (da {sourcePath})");
-                            CopyFilesToSingleFolder(folderPath, destinationPath, logWriter);
-                            logWriter.WriteLine();
+                            foldersToCopy = reactFolders;
+                            filesToCopy = new string[] { };
+                        }
+                        else if (sourcePath == dotnetPath)
+                        {
+                            foldersToCopy = dotnetFolders;
+                            filesToCopy = dotnetFiles;
                         }
                         else
                         {
-                            Console.WriteLine($"Cartella non trovata: {folderName} in {sourcePath}");
-                            logWriter.WriteLine($"Cartella non trovata: {folderName} in {sourcePath}");
+                            foldersToCopy = new string[] { };
+                            filesToCopy = new string[] { };
                         }
-                    }
 
-                    // Copy individual files
-                    foreach (string fileName in filesToCopy)
-                    {
-                        string filePath = Path.Combine(sourcePath, fileName);
-                        if (File.Exists(filePath))
+                        // Merge folders
+                        foreach (string folderName in foldersToCopy)
                         {
-                            logWriter.WriteLine($"File: {fileName} (da {sourcePath})");
-                            CopyFileToDestination(filePath, destinationPath, logWriter);
+                            string folderPath = Path.Combine(sourcePath, folderName);
+                            if (Directory.Exists(folderPath))
+                            {
+                                logWriter.WriteLine($"Folder: {folderName} (from {sourcePath})");
+                                MergeFolder(folderPath, mergedWriter, logWriter);
+                                logWriter.WriteLine();
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Folder not found: {folderName} in {sourcePath}");
+                                logWriter.WriteLine($"Folder not found: {folderName} in {sourcePath}");
+                            }
                         }
-                        else
+
+                        // Merge individual files
+                        foreach (string fileName in filesToCopy)
                         {
-                            Console.WriteLine($"File non trovato: {fileName} in {sourcePath}");
-                            logWriter.WriteLine($"File non trovato: {fileName} in {sourcePath}");
+                            string filePath = Path.Combine(sourcePath, fileName);
+                            if (File.Exists(filePath))
+                            {
+                                logWriter.WriteLine($"File: {fileName} (from {sourcePath})");
+                                MergeFile(filePath, mergedWriter, logWriter);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"File not found: {fileName} in {sourcePath}");
+                                logWriter.WriteLine($"File not found: {fileName} in {sourcePath}");
+                            }
                         }
                     }
                 }
             }
 
-            Console.WriteLine($"Operazione completata! I file sono stati copiati in: {destinationPath}");
+            Console.WriteLine($"Operation completed! The merged file is created at: {mergedFilePath}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Si è verificato un errore: {ex.Message}");
+            Console.WriteLine($"An error occurred: {ex.Message}");
         }
     }
 
-    static void CopyFilesToSingleFolder(string sourceDir, string destDir, StreamWriter logWriter)
+    static void MergeFolder(string sourceDir, StreamWriter mergedWriter, StreamWriter logWriter)
     {
         try
         {
@@ -119,43 +122,38 @@ class Program
             {
                 string relativePath = Path.GetRelativePath(sourceDir, filePath);
                 logWriter.WriteLine($"    File: {relativePath}");
-
-                string fileName = Path.GetFileName(filePath);
-                string destFilePath = Path.Combine(destDir, fileName);
-
-                if (File.Exists(destFilePath))
-                {
-                    string uniqueFileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{Guid.NewGuid():N}{Path.GetExtension(fileName)}";
-                    destFilePath = Path.Combine(destDir, uniqueFileName);
-                }
-
-                File.Copy(filePath, destFilePath, overwrite: true);
+                MergeFile(filePath, mergedWriter, logWriter);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Errore durante la copia dei file da {sourceDir}: {ex.Message}");
+            Console.WriteLine($"Error reading files from {sourceDir}: {ex.Message}");
         }
     }
 
-    static void CopyFileToDestination(string sourceFile, string destDir, StreamWriter logWriter)
+    static void MergeFile(string sourceFile, StreamWriter mergedWriter, StreamWriter logWriter)
     {
         try
         {
-            string fileName = Path.GetFileName(sourceFile);
-            string destFilePath = Path.Combine(destDir, fileName);
+            mergedWriter.WriteLine($"// File: {Path.GetFileName(sourceFile)}");
+            mergedWriter.WriteLine($"// Path: {sourceFile}");
+            mergedWriter.WriteLine();
 
-            if (File.Exists(destFilePath))
+            using (StreamReader reader = new StreamReader(sourceFile))
             {
-                string uniqueFileName = $"{Path.GetFileNameWithoutExtension(fileName)}_{Guid.NewGuid():N}{Path.GetExtension(fileName)}";
-                destFilePath = Path.Combine(destDir, uniqueFileName);
+                string content = reader.ReadToEnd();
+                mergedWriter.WriteLine(content);
             }
 
-            File.Copy(sourceFile, destFilePath, overwrite: true);
+            mergedWriter.WriteLine();
+            mergedWriter.WriteLine("// END OF FILE");
+            mergedWriter.WriteLine();
+
+            logWriter.WriteLine($"        File content from {Path.GetFileName(sourceFile)} has been merged into AllCode.txt");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Errore durante la copia del file {sourceFile}: {ex.Message}");
+            Console.WriteLine($"Error reading file {sourceFile}: {ex.Message}");
         }
     }
 }
