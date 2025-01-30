@@ -11,11 +11,11 @@ class Program
             Console.WriteLine("Which project do you want to filter? (1)-react  (2)-.net  (3)-both");
             string response = Console.ReadLine().Trim();
 
-            string reactPath = @"C:\Users\claud\OneDrive\Desktop\pizzeriaWebApp-React";
+            string reactPath = @"C:\Users\Claudio\Desktop\progetti\CresmeConsulting";
             string dotnetPath = @"C:\Users\claud\source\repos\pizzeriaWebApp\pizzeriaWebApp";
             List<string> sourcePaths = new List<string>();
 
-            string[] reactFolders = { "src" };
+            string[] reactFolders = { "app", "components", "context", "data", "models", "services" };
             string[] dotnetFolders = { "Controllers", "Data", "DTOs", "Models", "Profiles", "Services" };
             string[] dotnetFiles = { "Program.cs", "appsettings.json", "appsettings.Development.json", "appsettings.Production.json", "Dockerfile" };
 
@@ -42,6 +42,8 @@ class Program
             Directory.CreateDirectory(destinationPath);
 
             string mergedFilePath = Path.Combine(destinationPath, "AllCode.txt");
+            List<string> filteredFiles = new List<string>();
+
             using (StreamWriter mergedWriter = new StreamWriter(mergedFilePath))
             {
                 using (StreamWriter logWriter = new StreamWriter(Path.Combine(destinationPath, "ProjectStructure.txt")))
@@ -77,7 +79,7 @@ class Program
                             if (Directory.Exists(folderPath))
                             {
                                 logWriter.WriteLine($"Folder: {folderName} (from {sourcePath})");
-                                MergeFolder(folderPath, mergedWriter, logWriter);
+                                MergeFolder(folderPath, mergedWriter, logWriter, filteredFiles);
                                 logWriter.WriteLine();
                             }
                             else
@@ -94,7 +96,7 @@ class Program
                             if (File.Exists(filePath))
                             {
                                 logWriter.WriteLine($"File: {fileName} (from {sourcePath})");
-                                MergeFile(filePath, mergedWriter, logWriter);
+                                MergeFile(filePath, mergedWriter, logWriter, filteredFiles);
                             }
                             else
                             {
@@ -107,6 +109,12 @@ class Program
             }
 
             Console.WriteLine($"Operation completed! The merged file is created at: {mergedFilePath}");
+            Console.WriteLine($"Total files filtered: {filteredFiles.Count}");
+            Console.WriteLine("List of filtered files:");
+            foreach (string file in filteredFiles)
+            {
+                Console.WriteLine(file);
+            }
         }
         catch (Exception ex)
         {
@@ -114,15 +122,22 @@ class Program
         }
     }
 
-    static void MergeFolder(string sourceDir, StreamWriter mergedWriter, StreamWriter logWriter)
+    static void MergeFolder(string sourceDir, StreamWriter mergedWriter, StreamWriter logWriter, List<string> filteredFiles, string indent = "")
     {
         try
         {
-            foreach (string filePath in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
+            foreach (string dir in Directory.GetDirectories(sourceDir))
             {
-                string relativePath = Path.GetRelativePath(sourceDir, filePath);
-                logWriter.WriteLine($"    File: {relativePath}");
-                MergeFile(filePath, mergedWriter, logWriter);
+                string dirName = Path.GetFileName(dir);
+                logWriter.WriteLine($"{indent}- {dirName}");
+                MergeFolder(dir, mergedWriter, logWriter, filteredFiles, indent + "    ");
+            }
+
+            foreach (string filePath in Directory.GetFiles(sourceDir))
+            {
+                string fileName = Path.GetFileName(filePath);
+                logWriter.WriteLine($"{indent}- {fileName}");
+                MergeFile(filePath, mergedWriter, logWriter, filteredFiles);
             }
         }
         catch (Exception ex)
@@ -131,13 +146,11 @@ class Program
         }
     }
 
-    static void MergeFile(string sourceFile, StreamWriter mergedWriter, StreamWriter logWriter)
+    static void MergeFile(string sourceFile, StreamWriter mergedWriter, StreamWriter logWriter, List<string> filteredFiles)
     {
         try
         {
             mergedWriter.WriteLine($"// File: {Path.GetFileName(sourceFile)}");
-            mergedWriter.WriteLine($"// Path: {sourceFile}");
-            mergedWriter.WriteLine();
 
             using (StreamReader reader = new StreamReader(sourceFile))
             {
@@ -145,11 +158,10 @@ class Program
                 mergedWriter.WriteLine(content);
             }
 
-            mergedWriter.WriteLine();
             mergedWriter.WriteLine("// END OF FILE");
-            mergedWriter.WriteLine();
 
             logWriter.WriteLine($"        File content from {Path.GetFileName(sourceFile)} has been merged into AllCode.txt");
+            filteredFiles.Add($"{Path.GetFileName(sourceFile)}");
         }
         catch (Exception ex)
         {
